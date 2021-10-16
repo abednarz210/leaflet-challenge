@@ -1,96 +1,94 @@
-    // Create the tile layer that will be the background of our map.
-L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-  attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-  tileSize: 512,
-  maxZoom: 18,
-  zoomOffset: -1,
-  id: "mapbox/light-v11",
-  accessToken: API_KEY
-  }).addTo(myMap);
-
-      // Create our map, giving it the streetmap and earthquakes layers to display on load.
-  var myMap = L.map("map", {
-    center: [
-      37.09, -95.71
-    ],
-    zoom: 5,
-    layers: [street, earthquakes]
-  });
-
-// Store our API endpoint as queryUrl.
+// Store our API endpoint 
 var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
-// Perform a GET request to the query URL/
 
+// Perform a GET request to the query URL/
 d3.json(queryUrl).then(function (data) {
   // Once we get a response, send the data.features object to the createFeatures function.
+  createFeatures(data.features);
+});
 
+function createFeatures(earthquakeData) {
+  // Define a function that we want to run once for each feature in the features array.
+  // Give each feature a popup that describes the magnitude and coordinates of the earthquake.
+  function onEachFeature(feature, layer) {
+    layer.bindPopup(`<h3>${feature.properties.place}</h3><hr><p>${new Date(feature.properties.time)}</p>`);
+  }
+   // Create a GeoJSON layer that contains the features array on the earthquakeData object.
+  // Run the onEachFeature function once for each piece of data in the array.
+  var earthquakes = L.geoJSON(earthquakeData, {
+    onEachFeature: onEachFeature
+  });
 
+  // Send our earthquakes layer to the createMap functio
+  createMap(earthquakes);
+}
 
-  function createMap(earthquakeData) {
+function createMap(earthquakes) {
+  // Create the base layers.
+  var street = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',{
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    accessToken: API_KEY
+  });
 
+   // Create the base layers.
+   var tectonics = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',{
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    accessToken: API_KEY
+  });
 
+  var baseMaps = {
+    "Street Map": street,
+    "Tectonics" : tectonics
+  };
 
-  
-    // Create a baseMaps object to hold the map
-    var baseMaps = {
-      "Light Map": lightMap, 
-      "Dark Map": darkMap,
-      
+    // Create an overlay object to hold our overlay.
+  var overlayMaps = {
+      Earthquakes: earthquakes
     };
   
-    // Create tectonic layer.
-    var overlayMaps = {
-      "EarthquakeZone": EarthquakeZone
-    };
+// // Create our map, giving it the streetmap and earthquakes layers to display on load.
+//   var myMap = L.map("map", {
+//       center: [
+//         47.09, -85.71
+//       ],
+//       zoom: 4,
+//       layers: [street, earthquakes]
+//   });
+//     // Add the layer control to the map.
+//   L.control.layers(baseMaps, overlayMaps, {
+//       collapsed: false
+//   }).addTo(myMap);
   
-    // Create the map object with options.
-    var map = L.map("map", {
-      center: [40.73, -74.0059],
-      zoom: 12,
-      layers: [streetmap, bikeStations]
-    });
-  
-    // Create a layer control, and pass it baseMaps and overlayMaps. Add the layer control to the map.
-    L.control.layers(baseMaps, overlayMaps, {
-      collapsed: false
-    }).addTo(map);
+
+
+//Dynamic Legend map 
+
+function getColor(mag) {
+  return mag > 5? ‘#7a0177’ :
+  mag  > 200000? ‘#BD0026’ :
+  mag > 80000? ‘#E31A1C’ :
+  mag > 10000? ‘#FC4E2A’ :
+  mag > 5000 ? ‘#FD8D3C’ :
+  mag > 500 ? ‘#FEB24C’ :
+  d > 0 ? ‘#FED976’ :
+  ‘#FFEDA0’;
   }
-  
-  function createMarkers(response) {
-  
-    // Pull the "stations" property from response.data.
-    var feature = response.features;
-  
-    // Initialize an array to hold bike markers.
-    var featureMarker = [];
-  
-    // Loop through the stations array.
-    for (var index = 0; index < feature.length; index++) {
-      var earth = feature[index];
-  
-      // For each station, create a marker, and bind a popup with the station's name.
-      // Create a red circle over Dallas.
 
+var legend = L.control({position: 'bottomright}) 
 
+var div = L.DomUtil.create(‘div’, ‘info legend’),
+grades = [0,500,5000,10000,80000,200000,5000000];
 
-    var bikeMarker = L.circleMarker([32.7767, -96.7979], {
-        color: "red",
-        fillColor: "red",
-        fillOpacity: 0.75,
-        radius: 10000
-    })
-        .bindPopup("<h3>" + station.name + "<h3><h3>Capacity: " + station.capacity + "</h3>");
-   
-      // Add the marker to the bikeMarkers array.
-      bikeMarkers.push(bikeMarker);
-    }
-  
-    // Create a layer group that's made from the bike markers array, and pass it to the createMap function.
-    createMap(L.layerGroup(bikeMarkers));
+for (var i = 0; i < grades.length; i++) {
+  div.innerHTML += ‘<i style=”background:’ + getColor(grades[i] + 1) + ‘”></i> ‘ + grades[i] + (grades[i + 1] ? ‘&ndash;’ + grades[i + 1] + ‘<br>’ : ‘+’);
   }
+  return div;
+  };
   
-  
-  // Perform an API call to the Citi Bike API to get the station information. Call createMarkers when it completes.
-  d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson").then(createMarkers);
   
 
+
+legend.onAdd = function (map) { } 
+
+
+  //legend source: igismap  https://www.igismap.com/legend-in-leafletjs-map-with-topojson/</br>
