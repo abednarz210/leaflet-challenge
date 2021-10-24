@@ -1,5 +1,9 @@
 .DS_Store
 
+<<<<<<< HEAD
+=======
+Static/config.js
+>>>>>>> a35c033f246aab16aef5d4a9b5fe191ba152dec7
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
